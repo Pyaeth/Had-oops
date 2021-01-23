@@ -75,6 +75,7 @@ public class UIPicker extends javax.swing.JFrame {
                     }
                 }
                 jList1.setModel(model);
+                jList1.setEnabled(false);
             }
         }
     }
