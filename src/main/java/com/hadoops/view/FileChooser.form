@@ -40,6 +40,9 @@
   </Layout>
   <SubComponents>
     <Component class="javax.swing.JFileChooser" name="jFileChooser1">
+      <Properties>
+        <Property name="fileSelectionMode" type="int" value="1"/>
+      </Properties>
     </Component>
   </SubComponents>
 </Form>

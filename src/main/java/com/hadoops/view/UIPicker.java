@@ -5,22 +5,19 @@
  */
 package com.hadoops.view;
 
-import com.hadoops.controller.WordCount;
 import java.awt.Desktop;
 import java.awt.event.ActionEvent;
-import java.awt.event.ItemListener;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
-import org.apache.hadoop.util.ToolRunner;
 
 /**
  *
@@ -31,8 +28,8 @@ public class UIPicker extends javax.swing.JFrame {
     public DefaultListModel<String> model;
     private ArrayList<String> tracks = null;
     private ArrayList<File> files;
-    private File selectedInputFile;
-    private File resultsFile;
+    private File selectedInputDirectory;
+    private File[] filesToUpload;
     private File statisticsFile;
     
     public UIPicker() {
@@ -41,58 +38,67 @@ public class UIPicker extends javax.swing.JFrame {
         setLocationRelativeTo(null);
         setVisible(true);
         
-        jButton1.addActionListener(ev -> selectFile(ev));
+        jButton1.addActionListener(ev -> {
+            try {
+                selectFile(ev);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
         jButton2.addActionListener(ev -> {
             try {
-                startWordCounter();
+                startMetrics();
             } catch (Exception ex) {
                 Logger.getLogger(UIPicker.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
-        jButton3.addActionListener(ev -> showResults());
         jButton4.addActionListener(ev -> showStatistics());
     }
     
-    private void selectFile(ActionEvent e) {
+    private void selectFile(ActionEvent e) throws IOException, InterruptedException {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
-        jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        jfc.setFileFilter(new FileNameExtensionFilter("Text file", "txt"));
+        jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        ///jfc.setFileFilter(new FileNameExtensionFilter("Text file", "txt"));
         jfc.setMultiSelectionEnabled(false);
         int returnValue = jfc.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
-            selectedInputFile = jfc.getSelectedFile();
-            if (selectedInputFile != null) {
+            selectedInputDirectory = jfc.getSelectedFile();
+            if (selectedInputDirectory != null) {
                 jButton2.setEnabled(true);
-                jLabel4.setText(selectedInputFile.getName());
+                jLabel4.setText(selectedInputDirectory.getName());
+                filesToUpload = selectedInputDirectory.listFiles();
             }
         }
     }
-    
-    private void startWordCounter() throws Exception {
-        String pathInput = new String();
-        String pathOutput = new String();
-        String pathStats = new String();
-        pathInput = selectedInputFile.getAbsolutePath();
-        System.out.println("Input file path is: " + pathInput);
-        pathOutput = pathInput.substring(0, pathInput.indexOf(selectedInputFile.getName())) + "output.txt";
-        pathStats = pathInput.substring(0, pathInput.indexOf(selectedInputFile.getName())) + "stats.txt";
-        System.out.println("Output file path is: " + pathOutput);
-        //int exitCode = ToolRunner.run(new WordCount(), new String[]{pathInput,pathOutput});
-        //System.exit(exitCode);
-        resultsFile = new File(pathOutput);
-        statisticsFile = new File(pathStats);
-    }
-    
-    private void showResults() {
-        try {
-            Desktop.getDesktop().open(resultsFile);
-        } catch (NullPointerException e) {
-            JOptionPane.showMessageDialog(null, "No results found!");
-        } catch (Exception e) {
-            e.printStackTrace();
+
+    private void startMetrics() {
+        jLabel4.setText("Running...");
+        for (File fileToUpload : filesToUpload) {
+            String command = "hdfs dfs -put " + fileToUpload.getAbsolutePath() + "/test";
+            jLabel4.setText("Uploading " + fileToUpload.getName() + " to HDFS...");
+            try {
+                Process proc = Runtime.getRuntime().exec(command);
+
+                // Read the output
+
+                BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(proc.getInputStream()));
+
+                String line = "";
+                while ((line = reader.readLine()) != null) {
+                    System.out.print(line + "\n");
+                }
+
+                proc.waitFor();
+            } catch(InterruptedException | IOException exc) {
+                exc.printStackTrace();
+            }
         }
+        jLabel4.setText("Done.");
     }
-    
+
     private void showStatistics() {
         try {
             Desktop.getDesktop().open(statisticsFile);
@@ -117,9 +123,10 @@ public class UIPicker extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
         jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
-        jProgressBar1 = new javax.swing.JProgressBar();
         jButton4 = new javax.swing.JButton();
+        jButton3 = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jList1 = new javax.swing.JList<>();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -129,7 +136,7 @@ public class UIPicker extends javax.swing.JFrame {
         jLabel2.setFont(new java.awt.Font("Tiger Expert", 0, 12)); // NOI18N
         jLabel2.setText("Analyze your file within a Hadoop Cluster.");
 
-        jLabel3.setText("To start, choose a file:");
+        jLabel3.setText("To start, choose a folder:");
 
         jButton1.setText("Browse..");
 
@@ -137,17 +144,10 @@ public class UIPicker extends javax.swing.JFrame {
 
         jLabel5.setText("Status:");
 
-        jButton2.setText("Start WordCount");
+        jButton2.setText("Upload");
         jButton2.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton2ActionPerformed(evt);
-            }
-        });
-
-        jButton3.setText("Show results");
-        jButton3.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton3ActionPerformed(evt);
             }
         });
 
@@ -157,6 +157,25 @@ public class UIPicker extends javax.swing.JFrame {
                 jButton4ActionPerformed(evt);
             }
         });
+
+        jButton3.setText("Download");
+        jButton3.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                jButton3FocusGained(evt);
+            }
+        });
+
+        jScrollPane1.setBackground(new java.awt.Color(200, 200, 200));
+        jScrollPane1.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        jScrollPane1.setEnabled(false);
+        jScrollPane1.setFocusable(false);
+
+        jList1.setModel(new javax.swing.AbstractListModel<String>() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public String getElementAt(int i) { return strings[i]; }
+        });
+        jScrollPane1.setViewportView(jList1);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -175,42 +194,45 @@ public class UIPicker extends javax.swing.JFrame {
                                 .addComponent(jButton1))
                             .addComponent(jLabel2)
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(jButton2)
-                                .addGap(18, 18, 18)
-                                .addComponent(jButton3)
-                                .addGap(18, 18, 18)
-                                .addComponent(jButton4))
-                            .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addComponent(jLabel5)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel4)
-                                    .addComponent(jProgressBar1, javax.swing.GroupLayout.PREFERRED_SIZE, 238, javax.swing.GroupLayout.PREFERRED_SIZE))))))
-                .addContainerGap(13, Short.MAX_VALUE))
+                                .addComponent(jLabel4))
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addComponent(jButton2)
+                                .addGap(18, 18, 18)
+                                .addComponent(jButton4)
+                                .addGap(18, 18, 18)
+                                .addComponent(jButton3)))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 132, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(85, 85, 85))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel1)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel2)
-                .addGap(36, 36, 36)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(jButton1))
-                .addGap(18, 18, 18)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel5)
-                    .addComponent(jLabel4))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jProgressBar1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton2)
-                    .addComponent(jButton3)
-                    .addComponent(jButton4))
-                .addContainerGap(27, Short.MAX_VALUE))
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 215, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
+                        .addGap(38, 38, 38)
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jLabel2)
+                        .addGap(36, 36, 36)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel3)
+                            .addComponent(jButton1))
+                        .addGap(18, 18, 18)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel5)
+                            .addComponent(jLabel4))
+                        .addGap(30, 30, 30)
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jButton2)
+                            .addComponent(jButton4)
+                            .addComponent(jButton3))))
+                .addContainerGap(40, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -218,14 +240,13 @@ public class UIPicker extends javax.swing.JFrame {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addContainerGap())
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 453, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap(29, Short.MAX_VALUE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
@@ -236,13 +257,13 @@ public class UIPicker extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton2ActionPerformed
 
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_jButton3ActionPerformed
-
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void jButton3FocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_jButton3FocusGained
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jButton3FocusGained
     
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -255,7 +276,8 @@ public class UIPicker extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
+    private javax.swing.JList<String> jList1;
     private javax.swing.JPanel jPanel1;
-    private javax.swing.JProgressBar jProgressBar1;
+    private javax.swing.JScrollPane jScrollPane1;
     // End of variables declaration//GEN-END:variables
 }
