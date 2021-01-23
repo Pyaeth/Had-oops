@@ -11,12 +11,15 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileSystemView;
 
 /**
@@ -25,7 +28,6 @@ import javax.swing.filechooser.FileSystemView;
  */
 public class UIPicker extends javax.swing.JFrame {
 
-    public DefaultListModel<String> model;
     private File selectedInputDirectory;
     private File[] filesToUpload;
     private File statisticsFile;
@@ -47,7 +49,14 @@ public class UIPicker extends javax.swing.JFrame {
         });
         jButton2.addActionListener(ev -> {
             try {
-                startMetrics();
+                upload();
+            } catch (Exception ex) {
+                Logger.getLogger(UIPicker.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
+        jButton3.addActionListener(ev -> {
+            try {
+                download();
             } catch (Exception ex) {
                 Logger.getLogger(UIPicker.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -58,7 +67,7 @@ public class UIPicker extends javax.swing.JFrame {
     private void selectFile(ActionEvent e) throws IOException, InterruptedException {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
         jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        ///jfc.setFileFilter(new FileNameExtensionFilter("Text file", "txt"));
+        jfc.setFileFilter(new FileNameExtensionFilter("Text file", "txt"));
         jfc.setMultiSelectionEnabled(false);
         int returnValue = jfc.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
@@ -80,12 +89,13 @@ public class UIPicker extends javax.swing.JFrame {
         }
     }
 
-    private void startMetrics() {
+    private void upload() {
         jLabel4.setText("Running...");
-        for (File fileToUpload : filesToUpload) {
-            String command = "hdfs dfs -put " + fileToUpload.getAbsolutePath() + "/test";
-            jLabel4.setText("Uploading " + fileToUpload.getName() + " to HDFS...");
-            try {
+        try {
+            for (File fileToUpload : filesToUpload) {
+                String command = "hdfs dfs -put " + fileToUpload.getAbsolutePath() + "/test";
+                jLabel4.setText("Uploading " + fileToUpload.getName() + " to HDFS...");
+
                 Process proc = Runtime.getRuntime().exec(command);
 
                 // Read the output
@@ -99,15 +109,44 @@ public class UIPicker extends javax.swing.JFrame {
                 }
 
                 proc.waitFor();
-            } catch(InterruptedException | IOException exc) {
-                exc.printStackTrace();
-            }
-        }
-        jLabel4.setText("Done.");
-    }
 
+            }
+            jLabel4.setText("Upload completed.");
+        } catch (InterruptedException | IOException exc) {
+            exc.printStackTrace();
+        }
+    }
+    private void download() {
+        jLabel4.setText("Running...");
+        try {
+            for (File fileToUpload : filesToUpload) {
+                String command = "hdfs dfs -get /test/" + fileToUpload.getName() + " /media/master/ext/output";
+                jLabel4.setText("Downloading " + fileToUpload.getName() + " from HDFS to local storage...");
+
+                Process proc = Runtime.getRuntime().exec(command);
+
+                // Read the output
+
+                BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(proc.getInputStream()));
+
+                String line = "";
+                while ((line = reader.readLine()) != null) {
+                    System.out.print(line + "\n");
+                }
+
+                proc.waitFor();
+
+            }
+            jLabel4.setText("Download completed. Your files are located in /media/master/ext/output/.");
+        } catch (InterruptedException | IOException exc) {
+            exc.printStackTrace();
+        }
+    }
     private void showStatistics() {
         try {
+            String path = "/media/master/ext/PAT/PAT/PAT-collecting-data/results/";
+            statisticsFile = new File(path);
             Desktop.getDesktop().open(statisticsFile);
         } catch (NullPointerException e) {
             JOptionPane.showMessageDialog(null, "No statistics found!");
