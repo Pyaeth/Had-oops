@@ -11,11 +11,11 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileSystemView;
 
@@ -26,8 +26,6 @@ import javax.swing.filechooser.FileSystemView;
 public class UIPicker extends javax.swing.JFrame {
 
     public DefaultListModel<String> model;
-    private ArrayList<String> tracks = null;
-    private ArrayList<File> files;
     private File selectedInputDirectory;
     private File[] filesToUpload;
     private File statisticsFile;
@@ -37,7 +35,7 @@ public class UIPicker extends javax.swing.JFrame {
         setResizable(false);
         setLocationRelativeTo(null);
         setVisible(true);
-        
+
         jButton1.addActionListener(ev -> {
             try {
                 selectFile(ev);
@@ -69,6 +67,8 @@ public class UIPicker extends javax.swing.JFrame {
                 jButton2.setEnabled(true);
                 jLabel4.setText(selectedInputDirectory.getName());
                 filesToUpload = selectedInputDirectory.listFiles();
+                jList1 = new JList(filesToUpload);
+                jList1.setEnabled(false);
             }
         }
     }
@@ -170,11 +170,7 @@ public class UIPicker extends javax.swing.JFrame {
         jScrollPane1.setEnabled(false);
         jScrollPane1.setFocusable(false);
 
-        jList1.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
+        jList1.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         jScrollPane1.setViewportView(jList1);
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
