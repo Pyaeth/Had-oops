@@ -146,7 +146,7 @@ public class UIPicker extends javax.swing.JFrame {
 
         jButton1.setText("Browse..");
 
-        jLabel4.setText("No file selected.");
+        jLabel4.setText("No folder selected.");
 
         jLabel5.setText("Status:");
 
