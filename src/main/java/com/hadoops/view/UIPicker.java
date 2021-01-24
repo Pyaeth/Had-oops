@@ -67,14 +67,13 @@ public class UIPicker extends javax.swing.JFrame {
     private void selectFile(ActionEvent e) throws IOException, InterruptedException {
         JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
         jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        jfc.setFileFilter(new FileNameExtensionFilter("Text file", "txt"));
         jfc.setMultiSelectionEnabled(false);
         int returnValue = jfc.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             selectedInputDirectory = jfc.getSelectedFile();
             if (selectedInputDirectory != null) {
                 jButton2.setEnabled(true);
-                jLabel4.setText(selectedInputDirectory.getName());
+                jLabel4.setText("Folder selected: " + selectedInputDirectory.getName());
                 filesToUpload = selectedInputDirectory.listFiles();
 
                 DefaultListModel model = new DefaultListModel();
@@ -93,7 +92,7 @@ public class UIPicker extends javax.swing.JFrame {
         jLabel4.setText("Running...");
         try {
             for (File fileToUpload : filesToUpload) {
-                String command = "hdfs dfs -put " + fileToUpload.getAbsolutePath() + "/test";
+                String command = "hdfs dfs -put " + fileToUpload.getAbsolutePath() + " /test";
                 jLabel4.setText("Uploading " + fileToUpload.getName() + " to HDFS...");
 
                 Process proc = Runtime.getRuntime().exec(command);
