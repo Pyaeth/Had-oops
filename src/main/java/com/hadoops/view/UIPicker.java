@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.Level;
@@ -89,11 +90,10 @@ public class UIPicker extends javax.swing.JFrame {
     }
 
     private void upload() {
-        jLabel4.setText("Running...");
+        jLabel4.setText("Uploading...");
         try {
             for (File fileToUpload : filesToUpload) {
                 String command = "hdfs dfs -put " + fileToUpload.getAbsolutePath() + " /test";
-                jLabel4.setText("Uploading " + fileToUpload.getName() + " to HDFS...");
 
                 Process proc = Runtime.getRuntime().exec(command);
 
@@ -116,11 +116,10 @@ public class UIPicker extends javax.swing.JFrame {
         }
     }
     private void download() {
-        jLabel4.setText("Running...");
+        jLabel4.setText("Downloading...");
         try {
             for (File fileToUpload : filesToUpload) {
                 String command = "hdfs dfs -get /test/" + fileToUpload.getName() + " /media/master/ext/output";
-                jLabel4.setText("Downloading " + fileToUpload.getName() + " from HDFS to local storage...");
 
                 Process proc = Runtime.getRuntime().exec(command);
 
@@ -144,9 +143,8 @@ public class UIPicker extends javax.swing.JFrame {
     }
     private void showStatistics() {
         try {
-            String path = "/media/master/ext/PAT/PAT/PAT-collecting-data/results/";
-            statisticsFile = new File(path);
-            Desktop.getDesktop().open(statisticsFile);
+            URI results = new URI("http://master-node/ganglia");
+            Desktop.getDesktop().browse(results);
         } catch (NullPointerException e) {
             JOptionPane.showMessageDialog(null, "No statistics found!");
         } catch (Exception e) {
